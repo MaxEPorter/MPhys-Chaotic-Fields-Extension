@@ -3,6 +3,7 @@
 
 #include"fields.h"
 #include"solvers.h"
+#include"analyse.h"
 
 
 PYBIND11_MODULE(chaoticfields, m) {

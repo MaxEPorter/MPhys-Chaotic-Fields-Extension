@@ -143,11 +143,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="analyse.cpp" />
     <ClCompile Include="fields.cpp" />
     <ClCompile Include="module.cpp" />
     <ClCompile Include="solvers.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="analyse.h" />
     <ClInclude Include="fields.h" />
     <ClInclude Include="solvers.h" />
   </ItemGroup>
