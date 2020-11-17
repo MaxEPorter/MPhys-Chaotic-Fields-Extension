@@ -32,6 +32,7 @@ class Testing:
 
 if __name__ == '__main__':
 
+    print('nice')
     Testing()
     copy_pyd()
 
