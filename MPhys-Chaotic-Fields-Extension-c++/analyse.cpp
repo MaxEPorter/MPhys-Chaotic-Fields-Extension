@@ -2,6 +2,21 @@
 
 # define M_PI 3.14159265358979323846
 
+
+template <typename T>
+std::vector<T> linspace(T a, T b, size_t N) {
+	T h = (b - a) / static_cast<T>(N - 1);
+	std::vector<T> xs(N);
+	typename std::vector<T>::iterator x;
+	T val;
+	for (x = xs.begin(), val = a; x != xs.end(); ++x, val += h)
+		*x = val;
+	return xs;
+}
+
+
+
+
 std::array<std::vector<double>, 2> abc_poincare(
 	double t_start,
 	double t_end,
@@ -58,7 +73,12 @@ std::array<std::vector<double>, 2> abc_poincare(
 
 }
 
-std::array<std::vector<double>, 2> double_abc_poincare(double t_start, double t_end, double t_step, std::array<double, 3> x_ini, std::vector<double> params) {
+std::array<std::vector<double>, 2> double_abc_poincare(
+	double t_start, 
+	double t_end, 
+	double t_step, 
+	std::array<double, 3> x_ini, 
+	std::vector<double> params) {
 
 	std::array<std::vector<double>, 2> to_return;
 	state_type prev{ x_ini[0], x_ini[1], x_ini[2] };
@@ -106,18 +126,52 @@ std::vector<double> periodic_projection(std::vector<double> x) {
 
 }
 
-std::array<std::vector<double>, 2> line_variance(double n, double end, double step, std::vector<double> params, std::string method) {
+
+
+double line_distance_once(const Solution& firstline, const Solution& secondline, const int& index) {
+
+	double ret{ sqrt(
+				pow(firstline.x[index] - secondline.x[index], 2) +
+				pow(firstline.y[index] - secondline.y[index], 2) +
+				pow(firstline.z[index] - secondline.z[index], 2)) };
+
+	return ret;
+
+}
+
+
+std::vector<double> line_distance(const Solution& line1, const Solution& line2) {
+
+	std::vector<double> to_ret;
+	for (int i{}; i < line1.s.size(); i++) {
+		to_ret.push_back(log(line_distance_once(line1, line2, i)));
+	}
+
+	return to_ret;
+
+}
+
+
+
+
+std::array<std::vector<double>, 2> line_variance(
+	double n, 
+	double end, 
+	double step, 
+	std::array<double, 3> ini,
+	std::vector<double> params, 
+	std::string method) {
 
 	int vol{ static_cast<int>(pow(n, 3)) };
-	std::vector<std::array<double, 3>> ini;
+	std::vector<std::array<double, 3>> origin;
 	for (int i{ }; i < n; i++) {
 		for (int j{ }; j < n; j++) {
 			for (int k{ }; k < n; k++) {
 
-				std::array<double, 3> wow{ -0.02 + (static_cast<double>(i) * 0.01),
-					-0.02 + (static_cast<double>(j) * 0.01),
-					-0.02 + (static_cast<double>(k) * 0.01) };
-				ini.push_back(wow);
+				std::array<double, 3> wow{ ini[0] + -0.02 + (static_cast<double>(i) * 0.01),
+					ini[1] + -0.02 + (static_cast<double>(j) * 0.01),
+					ini[2] + -0.02 + (static_cast<double>(k) * 0.01) };
+				origin.push_back(wow);
 
 			}
 		}
@@ -128,8 +182,8 @@ std::array<std::vector<double>, 2> line_variance(double n, double end, double st
 	double start{ 0 };
 
 	std::vector<Solution> lines;  // for holding field line solutions
-	if (method == "abc") { for (auto it{ ini.begin() }; it < ini.end(); it++) { lines.push_back(abc_field(start, end, step, *it, params)); } }
-	else if (method == "double") { for (auto it{ ini.begin() }; it < ini.end(); it++) { lines.push_back(double_abc_field(start, end, step, *it, params)); } }
+	if (method == "abc") { for (auto it{ origin.begin() }; it < origin.end(); it++) { lines.push_back(abc_field(start, end, step, *it, params)); } }
+	else if (method == "double") { for (auto it{ origin.begin() }; it < origin.end(); it++) { lines.push_back(double_abc_field(start, end, step, *it, params)); } }
 	else { return std::array<std::vector<double>, 2>{std::vector<double>(1), std::vector<double>(1)}; } // if no field is called
 
 	std::vector<double> variance;
@@ -167,66 +221,173 @@ std::array<std::vector<double>, 2> line_variance(double n, double end, double st
 
 }
 
-std::array<std::vector<double>, 2> lyapunov(double end, double step, std::array<double, 3> ini, std::vector<double> params) {
+
+std::array<std::vector<double>, 3> trajectory_split(
+	double end, 
+	double step, 
+	std::array<double, 3> ini, 
+	std::vector<double> params,
+	double z0) {
+
+	Solution refline{ abc_field(0, end, step, ini, params) };
+	Solution divline{ abc_field(0, end, step, std::array<double, 3>{ini[0] + z0, ini[1], ini[2]}, params) };
+
+	std::vector<double> distance_apart;
+	std::vector<double> distance_apart_log;
+	double dis{};
+	for (int i{}; i < refline.s.size(); i++) {
+
+		dis = line_distance_once(refline, divline, i);
+		distance_apart_log.push_back(log(dis));
+		distance_apart.push_back(dis);
+
+	}
+
+	return std::array<std::vector<double>, 3>{refline.s, distance_apart, distance_apart_log};
+
+}
+
+
+std::array<std::vector<double>, 2> lyapunov(
+	double end, 
+	double step, 
+	std::array<double, 3> ini, 
+	std::vector<double> params) {
 
 	double z0 = 0.0000001;
 
-	double lyapunov_distance{ 50 };
-	int lyapunov_steps{ static_cast<int>(lyapunov_distance / step) };
-
-	int max_steps{ static_cast<int>(end / step) };
-	int n_points{ max_steps / lyapunov_steps };
-
-	std::vector<int> points;
-	for (int i{}; i < n_points; i++) {
-		points.push_back(lyapunov_steps * i);
-	}
-
-	Solution line1{ abc_field(0, end, step, ini, params) };
-
-	std::vector<double> s;
+	double lyapunov_distance{ 60 };
+	int n_points{ 500 };
+	int index{ static_cast<int>(end / (step * static_cast<double>(n_points))) };
+	
+	std::vector<double> starts{ linspace(0., end, n_points) };
 	std::vector<double> exponent;
 
-	for (int i{ 1 }; i < points.size(); i++) {
+	Solution refline;
+	Solution divline;
 
-		std::vector<std::array<double, 3>> starts{
-			std::array<double, 3>{line1.x[points[i - 1]] + z0, line1.y[points[i - 1]], line1.z[points[i - 1]]},
-			std::array<double, 3>{line1.x[points[i - 1]] - z0, line1.y[points[i - 1]], line1.z[points[i - 1]]},
-			std::array<double, 3>{line1.x[points[i - 1]], line1.y[points[i - 1]] + z0, line1.z[points[i - 1]]},
-			std::array<double, 3>{line1.x[points[i - 1]], line1.y[points[i - 1]] - z0, line1.z[points[i - 1]]},
-			std::array<double, 3>{line1.x[points[i - 1]], line1.y[points[i - 1]], line1.z[points[i - 1]] + z0},
-			std::array<double, 3>{line1.x[points[i - 1]], line1.y[points[i - 1]], line1.z[points[i - 1]] - z0},
-		};
+	int count{};
+	while (count < n_points) {
 
-		std::vector<Solution> lines;
-		for (auto it{ starts.begin() }; it < starts.end(); it++) {
-			lines.push_back(abc_field(0, lyapunov_distance, step, *it, params));
+		refline = abc_field(0, lyapunov_distance, step, ini, params);
+		divline = abc_field(0, lyapunov_distance, step, std::array<double, 3>{ini[0] + z0, ini[1], ini[2]}, params);
+		ini = { refline.x[index], refline.y[index], refline.z[index] };
+
+		exponent.push_back(log(line_distance_once(refline, divline, refline.s.size() - 1) / z0) / lyapunov_distance);
+
+		count++;
+
+	}
+	
+	return std::array<std::vector<double>, 2>{starts, exponent};
+
+}
+
+
+
+std::vector<double> recurrence_single(
+	double end, 
+	double step, 
+	std::array<double, 3> ini, 
+	std::vector<double> params, 
+	std::array<double, 3> spherepos,
+	double sphererad) {
+
+	std::vector<double> rec;
+	std::vector<double> s;
+	bool inside{ false };
+	std::array<double, 6> minmax{
+		spherepos[0] + sphererad,
+		spherepos[0] - sphererad,
+		spherepos[1] + sphererad,
+		spherepos[1] - sphererad,
+		spherepos[2] + sphererad,
+		spherepos[2] - sphererad };
+
+	Solution line{ abc_field(0, end, step, ini, params) };
+	std::vector<double> x{ periodic_projection(line.x) };
+	std::vector<double> y{ periodic_projection(line.y) };
+	std::vector<double> z{ periodic_projection(line.z) };
+	
+	for (int i{}; i < line.s.size(); i++) {
+
+		if (x[i] < minmax[0] && x[i] > minmax[1] &&
+			y[i] < minmax[2] && y[i] > minmax[3] &&
+			z[i] < minmax[4] && z[i] > minmax[5]) {
+
+			if (!inside) {
+
+				s.push_back(line.s[i]);
+				inside = true;
+				continue;
+
+			}
+			else {
+
+				continue;
+
+			}
+
 		}
 
-		std::vector<double> zts;
-		for (auto it{ lines.begin() }; it < lines.end(); it++) {
-			zts.push_back(sqrt(pow(line1.x[points[i] - 1] - it->x.back(), 2) +
-				pow(line1.y[points[i] - 1] - it->y.back(), 2) +
-				pow(line1.z[points[i] - 1] - it->z.back(), 2)));
-		}
-
-		//double av{};
-		//for (auto it{ zts.begin() }; it < zts.end(); it++) {
-		//	av += *it;
-		//}
-		//av = av / 6;
-		double biggest{};
-		for (int i{}; i < 6; i++) {
-			if (zts[i] > biggest) { biggest = zts[i]; }
-		}
-
-
-		s.push_back(line1.s[points[i]]);
-
-		exponent.push_back(log(biggest / z0) / lyapunov_distance);
+		inside = false;
 
 	}
 
-	return std::array<std::vector<double>, 2>{s, exponent};
+	for (int i{1}; i < s.size(); i++) {
+
+		rec.push_back(s[i] - s[i - 1]);
+
+	}
+
+	return rec;
+
+
+
+
+}
+
+std::vector<double> recurrence(
+	double end, 
+	double step, 
+	std::array<double, 3> ini, 
+	std::vector<double> params, 
+	std::array<double, 3> spherepos, 
+	double sphererad, 
+	int n) {
+
+	std::vector<double> x{ linspace(-0.01 + ini[0], 0.01 + ini[0], n) };
+	std::vector<double> y{ linspace(-0.01 + ini[1], 0.01 + ini[1], n) };
+	std::vector<double> z{ linspace(-0.01 + ini[2], 0.01 + ini[2], n) };
+	std::vector < std::array<double, 3>> beginnings;
+	
+	for (auto i{ x.begin() }; i < x.end(); i++) {
+		for (auto j{ y.begin() }; j < y.end(); j++) {
+			for (auto k{ z.begin() }; k < z.end(); k++) {
+
+				beginnings.push_back(std::array<double, 3>{*i, *j, *k});
+
+			}
+		}
+	}
+
+	std::vector<double> rec;
+	for (auto i{ beginnings.begin() }; i < beginnings.end(); i++) {
+
+		std::vector<double> temp{ recurrence_single(end, step, *i, params, spherepos, sphererad) };
+		rec.insert(rec.end(), temp.begin(), temp.end());
+
+	}
+
+	return rec;
+
+}
+
+
+
+
+double test(double num) {
+
+	return pow(num, 2);
 
 }

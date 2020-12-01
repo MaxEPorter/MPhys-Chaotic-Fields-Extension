@@ -67,7 +67,15 @@ PYBIND11_MODULE(chaoticfields, m) {
 
 	m.def("line_variance", &line_variance);
 
+	m.def("trajectory_split", &trajectory_split);
+
 	m.def("lyapunov", &lyapunov);
+
+	m.def("line_distance", &line_distance);
+
+	m.def("recurrence", &recurrence);
+
+	m.def("test", &test);
 
 #ifdef VERSION_INFO
 	m.attr("__version__") = VERSION_INFO;

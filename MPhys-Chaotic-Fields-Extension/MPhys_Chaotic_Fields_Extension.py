@@ -18,7 +18,6 @@ class Testing:
 
     def test_abc(self):
         l = chaos.abc_field(0, 1, 0.1, [1, 2, 1], [1, 2, 2, 1])
-        print(l.s)
 
     def test_double(self):
         l = chaos.double_abc_field(0, 1, 0.1, [1, 1, 1], [1, 1, 1, 1, 1, 1, 1])
@@ -32,7 +31,6 @@ class Testing:
 
 if __name__ == '__main__':
 
-    print('nice')
     Testing()
     copy_pyd()
 

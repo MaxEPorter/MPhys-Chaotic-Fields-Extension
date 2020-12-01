@@ -13,6 +13,15 @@ std::array<std::vector<double>, 2> double_abc_poincare(double t_start, double t_
 double periodic_projection_once(double x);
 std::vector<double> periodic_projection(std::vector<double> x);
 
-std::array<std::vector<double>, 2> line_variance(double n, double end, double step, std::vector<double> params, std::string method);
+double line_distance_once(const Solution& firstline, const Solution& secondline, const int& index);
+std::vector<double> line_distance(const Solution& line1, const Solution& line2);
 
+std::array<std::vector<double>, 2> line_variance(double n, double end, double step, std::array<double, 3> ini, std::vector<double> params, std::string method);
+
+std::array<std::vector<double>, 3> trajectory_split(double end, double step, std::array<double, 3> ini, std::vector<double> params, double z0);
 std::array<std::vector<double>, 2> lyapunov(double end, double step, std::array<double, 3> ini, std::vector<double> params);
+
+std::vector<double> recurrence_single(double end, double step, std::array<double, 3> ini, std::vector<double> params, std::array<double, 3> spherepos, double sphererad);
+std::vector<double> recurrence(double end, double step, std::array<double, 3> ini, std::vector<double> params, std::array<double, 3> spherepos, double sphererad, int n);
+
+double test(double num);
