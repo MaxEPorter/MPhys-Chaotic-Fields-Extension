@@ -286,6 +286,7 @@ std::array<std::vector<double>, 2> lyapunov(
 
 
 std::vector<double> recurrence_single(
+	std::string method,
 	double end, 
 	double step, 
 	std::array<double, 3> ini, 
@@ -304,7 +305,10 @@ std::vector<double> recurrence_single(
 		spherepos[2] + sphererad,
 		spherepos[2] - sphererad };
 
-	Solution line{ abc_field(0, end, step, ini, params) };
+	Solution line;
+	if (method == "abc") { line = abc_field(0, end, step, ini, params); }
+	else if (method == "double") { line = double_abc_field(0, end, step, ini, params); }
+	
 	std::vector<double> x{ periodic_projection(line.x) };
 	std::vector<double> y{ periodic_projection(line.y) };
 	std::vector<double> z{ periodic_projection(line.z) };
@@ -348,6 +352,7 @@ std::vector<double> recurrence_single(
 }
 
 std::vector<double> recurrence(
+	std::string method,
 	double end, 
 	double step, 
 	std::array<double, 3> ini, 
@@ -363,23 +368,72 @@ std::vector<double> recurrence(
 	
 	for (auto i{ x.begin() }; i < x.end(); i++) {
 		for (auto j{ y.begin() }; j < y.end(); j++) {
-			for (auto k{ z.begin() }; k < z.end(); k++) {
+			
 
-				beginnings.push_back(std::array<double, 3>{*i, *j, *k});
+			beginnings.push_back(std::array<double, 3>{*i, *j, 0});
 
-			}
+			
 		}
 	}
 
 	std::vector<double> rec;
 	for (auto i{ beginnings.begin() }; i < beginnings.end(); i++) {
 
-		std::vector<double> temp{ recurrence_single(end, step, *i, params, spherepos, sphererad) };
+		std::vector<double> temp{ recurrence_single(method, end, step, *i, params, spherepos, sphererad) };
 		rec.insert(rec.end(), temp.begin(), temp.end());
 
 	}
 
 	return rec;
+
+}
+
+
+std::array<std::vector<double>, 3> coord_frequency(
+	std::string method,
+	double end, 
+	double step, 
+	std::array<double, 3> ini, 
+	std::vector<double> params,
+	int n) {
+
+	Solution line{ abc_field(0, end, step, ini, params) };
+	std::vector<Solution> lines;  // for holding field line solutions
+	if (method == "abc") { line = abc_field(0, end, step, ini, params); } 
+	else if (method == "double") { line = double_abc_field(0, end, step, ini, params); } 
+	else { return std::array<std::vector<double>, 3>{std::vector<double>(1), std::vector<double>(1), std::vector<double>(1)}; } // if no field is called
+
+	std::vector<double> xphase{ periodic_projection(line.x) };
+	std::vector<double> yphase{ periodic_projection(line.y) };
+	std::vector<double> zphase{ periodic_projection(line.z) };
+
+	std::vector<size_t> split{ linspace(static_cast<size_t>(0), line.s.size(), n) };
+
+	std::vector<double> x;
+	std::vector<double> y;
+	std::vector<double> z;
+
+	for (int i{ 1 }; i < n; i++) {
+
+		double xsum{};
+		double ysum{};
+		double zsum{};
+
+		for (size_t j{ split[i - 1] }; j < split[i]; j++) {
+
+			xsum += xphase[j];
+			ysum += yphase[j];
+			zsum += zphase[j];
+
+		}
+
+		x.push_back(xsum);
+		y.push_back(ysum);
+		z.push_back(zsum);
+
+	}
+
+	return std::array<std::vector<double>, 3>{x, y, z};
 
 }
 

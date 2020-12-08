@@ -75,6 +75,8 @@ PYBIND11_MODULE(chaoticfields, m) {
 
 	m.def("recurrence", &recurrence);
 
+	m.def("coord_frequency", &coord_frequency);
+
 	m.def("test", &test);
 
 #ifdef VERSION_INFO

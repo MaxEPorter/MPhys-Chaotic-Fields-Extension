@@ -21,7 +21,9 @@ std::array<std::vector<double>, 2> line_variance(double n, double end, double st
 std::array<std::vector<double>, 3> trajectory_split(double end, double step, std::array<double, 3> ini, std::vector<double> params, double z0);
 std::array<std::vector<double>, 2> lyapunov(double end, double step, std::array<double, 3> ini, std::vector<double> params);
 
-std::vector<double> recurrence_single(double end, double step, std::array<double, 3> ini, std::vector<double> params, std::array<double, 3> spherepos, double sphererad);
-std::vector<double> recurrence(double end, double step, std::array<double, 3> ini, std::vector<double> params, std::array<double, 3> spherepos, double sphererad, int n);
+std::vector<double> recurrence_single(std::string method, double end, double step, std::array<double, 3> ini, std::vector<double> params, std::array<double, 3> spherepos, double sphererad);
+std::vector<double> recurrence(std::string method, double end, double step, std::array<double, 3> ini, std::vector<double> params, std::array<double, 3> spherepos, double sphererad, int n);
+
+std::array<std::vector<double>, 3> coord_frequency(std::string method, double end, double step, std::array<double, 3> ini, std::vector<double> params, int n);
 
 double test(double num);
